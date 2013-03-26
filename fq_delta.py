@@ -45,71 +45,24 @@ def _open(name):
             print "Couldn't find the file..."
 
 
-def create_delta(original_file=sys.stdin, processed_file=sys.stdin, delta_name='', output_processed=False):
+def create_delta(original_file=sys.stdin, processed_file=sys.stdin, delta_filename='', output_processed=False):
     """This function creates a delta file based on an original file and a processed file. Either files could come from
     standard in."""
-
-    # Raise an Exception if both "files" turn out to be sys.stdin.
-    if original_file == sys.stdin and processed_file == sys.stdin:
-        raise InputError("Only one of the inputfiles can be STDIN.")
-
-    # Convert file names to files, and open quip-files while we're at it.
-    if isinstance(original_file, str):
-        original_file = _open(original_file)
 
     if isinstance(processed_file, str):
         processed_file = _open(processed_file)
 
-    md5 = hashlib.md5()
-    if delta_name == '':
-        delta_name = processed_file.name
+    if delta_filename == '':
+        delta_filename = processed_file.name
 
-    open(delta_name, 'w').close()
-    delta_file = open(delta_name, 'a')
+    delta_file = DeltaFile('w', delta_filename, original_file)
 
-    while True:
-        id1 = original_file.readline().strip()
-        id2 = processed_file.readline().strip()
-        seq1 = original_file.readline().strip()
-        seq2 = processed_file.readline().strip()
-        com1 = original_file.readline().strip()
-        com2 = processed_file.readline().strip()
-        qua1 = original_file.readline().strip()
-        qua2 = processed_file.readline().strip()
-        if id2 == '':
-            break
-        md5.update(id2)
-        md5.update(seq2)
-        md5.update(com2)
-        md5.update(qua2)
-        while id1.partition('\t')[0] != id2.partition('\t')[0]:
-            delta_file.write('-' + str(len(id1.strip())) + '\n')
-            delta_file.write('-' + str(len(seq1.strip())) + '\n')
-            delta_file.write('-' + str(len(com1.strip())) + '\n')
-            delta_file.write('-' + str(len(qua1.strip())) + '\n')
-            id1 = original_file.readline().strip()
-            seq1 = original_file.readline().strip()
-            com1 = original_file.readline().strip()
-            qua1 = original_file.readline().strip()
-            if id1 == '':
-                break
-        for (t1, t2) in ((id1, id2), (seq1, seq2), (com1, com2), (qua1, qua2)):
-            diff = dmp.diff_main(t1.strip(), t2.strip())
-            delta = dmp.diff_toDelta(diff) + '\n'
-            delta_file.write(delta)
-            if output_processed:
-                print t2
+    for line in processed_file:
+        delta_file.write(line)
+
+    print delta_file.delta_file
 
     delta_file.close()
-
-    # Copy the delta file to a compressed archive, and remove the delta file
-    zf = zipfile.ZipFile(delta_name + '.zip', mode='w')
-    try:
-        zf.write(delta_name, compress_type=compression)
-        zf.writestr('md5_checksum', md5.digest(), compress_type=compression)
-        os.remove(delta_name)
-    finally:
-        zf.close()
 
 
 def rebuild_fastq(delta_filename, original_file=sys.stdin, out=sys.stdout, to_stdout=False):
@@ -286,11 +239,14 @@ class DeltaFile():
                 self.delta_file.write(delta)
                 if output_processed:
                     print t2
+
+        self.leftover = lines
+
         if close_file:
             self.close()
 
     def write(self, string, output_processed=False, close_file=False):
-        lines = string.split('\n')
+        lines = string.strip().split('\n')
         self.writelines(lines, output_processed, close_file)
 
 
