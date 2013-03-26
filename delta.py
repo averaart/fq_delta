@@ -1,0 +1,99 @@
+#!/usr/bin/python
+__author__ = 'averaart'
+
+# Batteries included
+import sys
+import os
+from subprocess import Popen, PIPE
+import hashlib
+import argparse
+import zipfile
+try:
+    import zlib
+    compression = zipfile.ZIP_DEFLATED
+except ImportError:
+    compression = zipfile.ZIP_STORED
+
+# 3rd party imports
+import diff_match_patch as dmp_module
+
+# Custom modules
+import fq_delta
+
+
+def openf(name):
+    """Opens a file, or streams an unquiping archive."""
+    if name[-3:] == '.qp':
+        return Popen('unquip -c ' + name, shell=True, stdout=PIPE).stdout
+    else:
+        return open(name, 'r')
+
+
+# build argument parser
+parser = argparse.ArgumentParser(description='This script compares two files. The changes from File 1 to File 2 are '
+                                             'stored in a delta file, which can later be used to recreate File 2 from '
+                                             'File 1. The delta file will be compressed into a zipfile automatically. '
+                                             'There is no need to uncompress it when rebuilding the changed file from '
+                                             'the original and delta files.',
+                                 epilog='Files can either be fastq files, or files compressed with Quip '
+                                        '(http://homes.cs.washington.edu/~dcjones/quip/). Quip files are recognised by'
+                                        'their .qp extension. This ofcourse requires Quip to be installed and '
+                                        'available on PATH.')
+parser.add_argument('file1',
+                    type=str,
+                    help='the original file, or the changed file if -si is set to 1')
+parser.add_argument('file2',
+                    nargs='?',
+                    type=str,
+                    help='the changed file, or the delta file if -si is set to 1 or 2')
+parser.add_argument('file3',
+                    nargs='?',
+                    type=str,
+                    help='the delta file, defaults to [ file2 ].delta')
+parser.add_argument("-si", "--stdin",
+                    type=int,
+                    choices=[0, 1, 2],
+                    default=0,
+                    help="use stdin as either file 1 or file 2")
+parser.add_argument("-so", "--stdout",
+                    help="pass file 2 to stdout, to enable piping to other commands",
+                    action="store_true")
+
+
+# setup
+
+args = parser.parse_args()
+delta_name = ''
+
+if args.stdin == 0:
+    f1 = openf(args.file1)
+    f2 = openf(args.file2)
+    if args.file3 is None:
+        if args.file2.endswith('.fastq'):
+            delta_name = args.file2[:-6] + '.delta'
+        else:
+            delta_name = args.file2 + '.delta'
+    else:
+        delta_name = args.file3
+elif args.stdin == 1:
+    f1 = sys.stdin
+    f2 = openf(args.file1)
+    if args.file2 is None:
+        if args.file1.endswith('.fastq'):
+            delta_name = args.file1[:-6] + '.delta'
+        else:
+            delta_name = args.file1 + '.delta'
+    else:
+        delta_name = args.file2
+elif args.stdin == 2:
+    f1 = openf(args.file1)
+    f2 = sys.stdin
+    if args.file2 is None:
+        if args.file1.endswith('.fastq'):
+            delta_name = args.file1[:-6] + '.delta'
+        else:
+            delta_name = args.file1 + '.delta'
+    else:
+        delta_name = args.file2
+
+fq_delta.create_delta(f1, f2, delta_name)
