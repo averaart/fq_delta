@@ -132,9 +132,15 @@ def rebuild_fastq(delta_filename, original_file=sys.stdin, out=sys.stdout, to_st
         if to_stdout:
             sys.stdout.write(line + '\n')
 
+
 class DeltaFile():
-    def __init__(self, mode, delta_filename, original_file=sys.stdin):
-        if mode == 'r':
+
+    def __init__(self, mode, delta_filename, original_file=sys.stdin, processed_file=sys.stdin):
+        self.leftover = list()
+        self.mode = mode
+
+        # Open an existing deltafile to read the processed file
+        if self.mode == 'r':
             self.delta_filename = delta_filename
 
             # Convert file names to files, and open quip-files while we're at it.
@@ -174,8 +180,34 @@ class DeltaFile():
                 zf.extract(self.filename)
 
             self.deltas = open(self.filename, "r")
-        elif mode == 'w':
-            print "Not just yet..."
+
+        # Write a new deltafile from the processed data.
+        elif self.mode == 'w':
+
+            # Raise an Exception if both "files" turn out to be sys.stdin.
+            if original_file == sys.stdin and processed_file == sys.stdin:
+                raise InputError("Only one of the inputfiles can be STDIN.")
+
+            # Convert file names to files, and open quip-files while we're at it.
+            if isinstance(original_file, str):
+                self.original_file = _open(original_file)
+            else:
+                self.original_file = original_file
+
+            if isinstance(processed_file, str):
+                self.processed_file = _open(processed_file)
+            else:
+                self.processed_file = processed_file
+
+            self.md5 = hashlib.md5()
+            if delta_filename == '':
+                self.delta_filename = processed_file.name
+            else:
+                self.delta_filename = delta_filename
+
+            open(delta_filename, 'w').close()
+            self.delta_file = open(self.delta_filename, 'a')
+
         else:
             raise Exception('Illegal mode: ' + str(mode))
 
@@ -183,6 +215,8 @@ class DeltaFile():
         return self
 
     def next(self):
+        self.check_reading()
+
         if self.original_file.closed or self.deltas.closed:
             raise IOError("Trying to iterate over closed files...")
 
@@ -210,15 +244,76 @@ class DeltaFile():
         return t2
 
     def readline(self):
+        self.check_reading()
         return self.next()
 
     def readlines(self):
+        self.check_reading()
         return [line for line in self]
 
+    def writelines(self, lines, output_processed=False, close_file=False):
+        lines = self.leftover + lines
+
+        while len(lines) >= 4:
+            id1 = self.original_file.readline().strip()
+            id2 = lines.pop(0).strip()
+            seq1 = self.original_file.readline().strip()
+            seq2 = lines.pop(0).strip()
+            com1 = self.original_file.readline().strip()
+            com2 = lines.pop(0).strip()
+            qua1 = self.original_file.readline().strip()
+            qua2 = lines.pop(0).strip()
+            if id2 == '':
+                break
+            self.md5.update(id2)
+            self.md5.update(seq2)
+            self.md5.update(com2)
+            self.md5.update(qua2)
+            while id1.partition('\t')[0] != id2.partition('\t')[0]:
+                self.delta_file.write('-' + str(len(id1.strip())) + '\n')
+                self.delta_file.write('-' + str(len(seq1.strip())) + '\n')
+                self.delta_file.write('-' + str(len(com1.strip())) + '\n')
+                self.delta_file.write('-' + str(len(qua1.strip())) + '\n')
+                id1 = self.original_file.readline().strip()
+                seq1 = self.original_file.readline().strip()
+                com1 = self.original_file.readline().strip()
+                qua1 = self.original_file.readline().strip()
+                if id1 == '':
+                    break
+            for (t1, t2) in ((id1, id2), (seq1, seq2), (com1, com2), (qua1, qua2)):
+                diff = dmp.diff_main(t1.strip(), t2.strip())
+                delta = dmp.diff_toDelta(diff) + '\n'
+                self.delta_file.write(delta)
+                if output_processed:
+                    print t2
+        if close_file:
+            self.close()
+
+    def write(self, string, output_processed=False, close_file=False):
+        lines = string.split('\n')
+        self.writelines(lines, output_processed, close_file)
+
+
     def close(self):
-        if not self.deltas.closed:
-            self.deltas.close()
-        try:
-            os.remove(self.filename)
-        except IOError:
-            pass
+        if self.mode is 'r':
+            if not self.deltas.closed:
+                self.deltas.close()
+            try:
+                os.remove(self.filename)
+            except IOError:
+                pass
+        else:
+            self.delta_file.close()
+
+            # Copy the delta file to a compressed archive, and remove the delta file
+            self.zf = zipfile.ZipFile(self.delta_filename + '.zip', mode='w')
+            try:
+                self.zf.write(self.delta_filename, self.delta_filename.rpartition('/')[2], compress_type=compression)
+                self.zf.writestr('md5_checksum', self.md5.digest(), compress_type=compression)
+                os.remove(self.delta_filename)
+            finally:
+                self.zf.close()
+
+    def check_reading(self):
+        if self.mode is not 'r':
+            raise IOError('File not open for reading')
