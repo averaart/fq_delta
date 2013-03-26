@@ -125,58 +125,12 @@ def rebuild_fastq(delta_filename, original_file=sys.stdin, out=sys.stdout, to_st
     if out == sys.stdout:
         to_stdout = False
 
-    md5 = hashlib.md5()
+    processed_file = DeltaFile('r', delta_filename, original_file)
 
-    # Extract the checksum and delta files.
-
-    # If there is no checksum file in the zipfile, bail out.
-    # ("I'm not touching that with a 10 foot pole!")
-
-    zf = zipfile.ZipFile(delta_filename)
-    namelist = zf.namelist()
-    if 'md5_checksum' not in namelist:
-        raise ChecksumError('No checksum found.')
-    else:
-        namelist.pop(namelist.index("md5_checksum"))
-        checksum = zf.open('md5_checksum', "r").read()
-
-    # For the delta file, first assume the filename is the same as the archive's name
-    # minus ".zip". If that fails, find the first file that contains the word "delta".
-    # Else just extract the first file you can find. Ugly, I know... :D
-
-    filename = delta_filename.rpartition('.')[0]
-    try:
-        zf.extract(filename)
-    except KeyError:
-        delta_names = [s for s in namelist if "delta" in s]
-        if len(delta_names) > 0:
-            filename = delta_names[0]
-        else:
-            filename = namelist[0]
-        zf.extract(filename)
-
-    deltas = open(filename, "r")
-
-    # Read both files line by line, and print the results as long as the delta file has lines to offer.
-    while True:
-        t1 = original_file.readline()
-        delta = deltas.readline().strip()
-        if delta == '':
-            break
-        diff = dmp.diff_fromDelta(t1.strip(), delta.strip())
-        t2 = dmp.diff_text2(diff)
-        if t2 != '':
-            md5.update(t2)
-            out.write(t2 + '\n')
-            if to_stdout:
-                print t2
-
-    # Clean up the uncompressed delta file
-    deltas.close()
-    os.remove(filename)
-
-    if not md5.digest() == checksum:
-        raise ChecksumError("Checksum did not match!")
+    for line in processed_file:
+        out.write(line + '\n')
+        if to_stdout:
+            sys.stdout.write(line + '\n')
 
 class DeltaFile():
     def __init__(self, mode, delta_filename, original_file=sys.stdin):
@@ -232,27 +186,28 @@ class DeltaFile():
         if self.original_file.closed or self.deltas.closed:
             raise IOError("Trying to iterate over closed files...")
 
-        t1 = self.original_file.readline()
-        delta = self.deltas.readline().strip()
-        if delta == '':
-            # End of File
-            # Clean up the uncompressed delta file
-            self.deltas.close()
-            os.remove(self.filename)
-            # Check the checksum...
-            if not self.md5.digest() == self.checksum:
-                raise ChecksumError("Checksum did not match!")
-            # Kill the iterator
-            raise StopIteration
+        delta = ''
+        t1 = ''
+        t2 = ''
 
-        diff = dmp.diff_fromDelta(t1.strip(), delta.strip())
-        t2 = dmp.diff_text2(diff)
-        if t2 != '':
-            self.md5.update(t2)
-            return t2
-        else:
-            # Keep looking until you have another line to offer
-            return self.next()
+        while t2 == '':
+            t1 = self.original_file.readline()
+            delta = self.deltas.readline().strip()
+            if delta == '':
+                # End of File
+                # Clean up the uncompressed delta file
+                self.deltas.close()
+                os.remove(self.filename)
+                # Check the checksum...
+                if not self.md5.digest() == self.checksum:
+                    raise ChecksumError("Checksum did not match!")
+                # Kill the iterator
+                raise StopIteration
+            diff = dmp.diff_fromDelta(t1.strip(), delta.strip())
+            t2 = dmp.diff_text2(diff)
+
+        self.md5.update(t2)
+        return t2
 
     def readline(self):
         return self.next()
