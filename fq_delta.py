@@ -60,8 +60,6 @@ def create_delta(original_file=sys.stdin, processed_file=sys.stdin, delta_filena
     for line in processed_file:
         delta_file.write(line)
 
-    print delta_file.delta_file
-
     delta_file.close()
 
 
@@ -153,12 +151,21 @@ class DeltaFile():
                 self.processed_file = processed_file
 
             self.md5 = hashlib.md5()
+
             if delta_filename == '':
                 self.delta_filename = processed_file.name
             else:
                 self.delta_filename = delta_filename
 
-            open(delta_filename, 'w').close()
+            # Remove .zip if entered as delta_filename argument.
+            # It'll be added when the file is zipped.
+            if self.delta_filename[-4:] == '.zip':
+                self.delta_filename = self.delta_filename[:-4]
+
+            # If delta_filename already exists, add ".delta" to prevent accidental overwriting
+            if os.path.exists(self.delta_filename):
+                self.delta_filename += ".delta"
+
             self.delta_file = open(self.delta_filename, 'a')
 
         else:
@@ -256,7 +263,7 @@ class DeltaFile():
                 self.deltas.close()
             try:
                 os.remove(self.filename)
-            except IOError:
+            except OSError:
                 pass
         else:
             self.delta_file.close()
