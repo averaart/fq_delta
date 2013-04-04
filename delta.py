@@ -96,4 +96,4 @@ elif args.stdin == 2:
     else:
         delta_name = args.file2
 
-fq_delta.create_delta(f1, f2, delta_name)
+fq_delta.create_delta(f1, f2, delta_name, args.stdout)
