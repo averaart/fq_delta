@@ -88,9 +88,11 @@ def rebuild_fastq(delta_filename, original_file=sys.stdin, out=sys.stdout, to_st
 
 class DeltaFile():
 
-    def __init__(self, mode, delta_filename, original_file=sys.stdin, processed_file=sys.stdin):
+    def __init__(self, mode, delta_filename, original_file=sys.stdin, processed_file=sys.stdin, reuse=False):
+
         self.leftover = list()
         self.mode = mode
+        self.reuse = reuse
 
         # Open an existing deltafile to read the processed file
         if self.mode == 'r':
@@ -172,6 +174,12 @@ class DeltaFile():
     def __iter__(self):
         return self
 
+    def reset(self):
+        self.deltas.seek(0)
+        self.original_file.seek(0)
+        self.leftover = list()
+        self.md5 = hashlib.md5()
+
     def next(self):
         self.check_reading()
 
@@ -187,12 +195,17 @@ class DeltaFile():
             delta = self.deltas.readline().strip()
             if delta == '':
                 # End of File
-                # Clean up the uncompressed delta file
-                self.deltas.close()
-                os.remove(self.filename)
                 # Check the checksum...
                 if not self.md5.digest() == self.checksum:
                     raise ChecksumError("Checksum did not match!")
+
+                if self.reuse:
+                    self.reset()
+                else:
+                    # Clean up the uncompressed delta file
+                    self.deltas.close()
+                    os.remove(self.filename)
+
                 # Kill the iterator
                 raise StopIteration
             diff = dmp.diff_fromDelta(t1.strip(), delta.strip())
@@ -253,7 +266,6 @@ class DeltaFile():
     def write(self, string, output_processed=False, close_file=False):
         lines = string.strip().split('\n')
         self.writelines(lines, output_processed, close_file)
-
 
     def close(self):
         if self.mode is 'r':
