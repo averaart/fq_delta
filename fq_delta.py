@@ -164,10 +164,6 @@ class DeltaFile():
             if self.delta_filename[-4:] == '.zip':
                 self.delta_filename = self.delta_filename[:-4]
 
-            # If delta_filename already exists, add ".delta" to prevent accidental overwriting
-            if os.path.exists(self.delta_filename):
-                self.delta_filename += ".delta"
-
             self.delta_file = open(self.delta_filename, 'a')
 
         else:
