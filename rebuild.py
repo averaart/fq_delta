@@ -74,4 +74,4 @@ else:
     else:
         out = open(args.file3, 'w')
 
-fq_delta.rebuild_fastq(f2, f1)
+fq_delta.rebuild_fastq(f2, f1, out)
