@@ -59,6 +59,8 @@ def create_delta(original_file=sys.stdin, processed_file=sys.stdin, delta_filena
 
     for line in processed_file:
         delta_file.write(line)
+        if output_processed:
+            print line,
 
     delta_file.close()
 
