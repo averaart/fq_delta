@@ -97,6 +97,7 @@ class DeltaFile():
         # Open an existing deltafile to read the processed file
         if self.mode == 'r':
             self.delta_filename = delta_filename
+            self.buffer = list()
 
             # Convert file names to files, and open quip-files while we're at it.
             if isinstance(original_file, str):
@@ -186,33 +187,41 @@ class DeltaFile():
         if self.original_file.closed or self.deltas.closed:
             raise IOError("Trying to iterate over closed files...")
 
-        delta = ''
-        t1 = ''
-        t2 = ''
+        while len(self.buffer) <= 0:
+            while len(self.buffer) < 4:
+                delta = ''
+                t1 = ''
+                t2 = ''
 
-        while t2 == '':
-            t1 = self.original_file.readline()
-            delta = self.deltas.readline().strip()
-            if delta == '':
-                # End of File
-                # Check the checksum...
-                if not self.md5.digest() == self.checksum:
-                    raise ChecksumError("Checksum did not match!")
+                t1 = self.original_file.readline()
+                delta = self.deltas.readline().strip()
+                if delta == '':
+                    # End of File
+                    # Check the checksum...
+                    if not self.md5.digest() == self.checksum:
+                        raise ChecksumError("Checksum did not match!")
 
-                if self.reuse:
-                    self.reset()
-                else:
-                    # Clean up the uncompressed delta file
-                    self.deltas.close()
-                    os.remove(self.filename)
+                    if self.reuse:
+                        self.reset()
+                    else:
+                        # Clean up the uncompressed delta file
+                        self.deltas.close()
+                        os.remove(self.filename)
 
-                # Kill the iterator
-                raise StopIteration
-            diff = dmp.diff_fromDelta(t1.strip(), delta.strip())
-            t2 = dmp.diff_text2(diff)
+                    # Kill the iterator
+                    raise StopIteration
 
-        self.md5.update(t2)
-        return t2
+                diff = dmp.diff_fromDelta(t1.strip(), delta.strip())
+                t2 = dmp.diff_text2(diff)
+                self.buffer.append(t2)
+
+            # Check if the read was removed. If so, clear the buffer so the next four lines are read.
+            if self.buffer == ['', '', '', '']:
+                self.buffer = list()
+
+        nextline = self.buffer.pop(0)
+        self.md5.update(nextline)
+        return nextline
 
     def readline(self):
         self.check_reading()
