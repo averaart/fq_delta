@@ -72,13 +72,13 @@ def rebuild_fastq(delta_filename, original_file=sys.stdin, out=sys.stdout, to_st
     if isinstance(original_file, str):
         original_file = _open(original_file)
 
+    processed_file = DeltaFile('r', delta_filename, original_file)
+
     if isinstance(out, str):
         out = open(out, 'w')
 
     if out == sys.stdout:
         to_stdout = False
-
-    processed_file = DeltaFile('r', delta_filename, original_file)
 
     for line in processed_file:
         out.write(line + '\n')
