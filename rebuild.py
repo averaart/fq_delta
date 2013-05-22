@@ -74,4 +74,18 @@ else:
     else:
         out = open(args.file3, 'w')
 
-fq_delta.rebuild_fastq(f2, f1, out)
+try:
+    fq_delta.rebuild_fastq(f2, f1, out)
+except fq_delta.ChecksumError as checksum_error:
+    if checksum_error.message == 'No checksum found.':
+        filename = out.name
+        out.close()
+        os.remove(filename)
+    if checksum_error.message == "Checksum did not match!":
+        filename = out.name
+        if not out.closed:
+            out.close()
+        parts = filename.rpartition('.')
+        new_filename = parts[0] + '.BAD_CHECKSUM.' + parts[2]
+        os.rename(filename, new_filename)
+    raise
