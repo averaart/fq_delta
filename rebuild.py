@@ -81,6 +81,7 @@ except fq_delta.ChecksumError as checksum_error:
         filename = out.name
         out.close()
         os.remove(filename)
+        print "ERROR: " + checksum_error.message
     if checksum_error.message == "Checksum did not match!":
         filename = out.name
         if not out.closed:
@@ -88,4 +89,7 @@ except fq_delta.ChecksumError as checksum_error:
         parts = filename.rpartition('.')
         new_filename = parts[0] + '.BAD_CHECKSUM.' + parts[2]
         os.rename(filename, new_filename)
-    raise
+        print "WARNING: " + checksum_error.message
+except ValueError as value_error:
+    print "ERROR: This delta-file cannot be applied to this source-file."
+    print "Details: " + value_error.message
