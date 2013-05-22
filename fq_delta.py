@@ -199,6 +199,7 @@ class DeltaFile():
                     # End of File
                     # Check the checksum...
                     if not self.md5.digest() == self.checksum:
+                        self.close()
                         raise ChecksumError("Checksum did not match!")
 
                     if self.reuse:
