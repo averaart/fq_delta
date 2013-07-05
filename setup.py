@@ -10,4 +10,5 @@ setup(name='fq_delta',
       author_email='mail@andra.nl',
       url='https://github.com/averaart/fq_delta',
       packages=['fq_delta', 'diff_match_patch'],
+      data_files=[('fq_delta', ['fq_delta/test.sh'])]
       )
