@@ -2,7 +2,7 @@
 
 # This script runs a few tests on fq_delta.
 # It assumes there is access to the internet to download the testfile.
-# It also requires delta.py, rebuild.py and cutadapt to be available in PATH.
+# It also requires delta.py, rebuild.py, cutadapt and the FASTX-toolkit to be available in PATH.
 
 # Download a test-file
 echo
@@ -16,6 +16,29 @@ bunzip2 SRR647485.fastq.bz2
 printf "\n\n\n"
 
 
+fastq_quality_trimmer -t 20 -i SRR647485.fastq -o SRR647485.qt.fastq
+
+# Create delta-file
+delta.py SRR647485.fastq SRR647485.qt.fastq SRR647485.qt.delta
+
+# Demonstrate difference in file-size between the delta-file and the actual second version
+echo "Here's the difference between the processed file and the delta-file after running fastq_quality_trimmer from the FASTX-toolkit."
+ls -l SRR647485.qt.*
+
+# Rebuild the processed file using the original and the delta-file
+rebuild.py SRR647485.fastq SRR647485.qt.delta.zip SRR647485.qt.rebuilt.fastq
+
+# Compare the processed file with the rebuilt file
+echo "Comparing the processed file with the rebuilt file. The next line should be empty."
+cmp SRR647485.qt.fastq SRR647485.qt.rebuilt.fastq
+echo
+
+# Clean up newly created files
+rm SRR647485.qt.*
+
+printf "\n\n\n"
+
+
 # Apply cutadapt to create a new fastq-file
 cutadapt -a GATCGGAAGAGCACACGTCTGAACTCCAGTCACCGATGTATCTCGTATGC SRR647485.fastq > SRR647485.ca.fastq 2> /dev/null
 
@@ -24,7 +47,7 @@ delta.py SRR647485.fastq SRR647485.ca.fastq SRR647485.ca.delta
 
 # Demonstrate difference in file-size between the delta-file and the actual second version
 echo "Here's the difference between the processed file and the delta-file after running cutadapt."
-ls -l SRR647485.ca.*
+ls -lh SRR647485.ca.*
 
 # Rebuild the processed file using the original and the delta-file
 rebuild.py SRR647485.fastq SRR647485.ca.delta.zip SRR647485.ca.rebuilt.fastq
@@ -45,6 +68,34 @@ rm SRR647485.ca.*
 
 printf "\n\n\n"
 
+# Apply cutadapt to create a new fastq-file
+cutadapt -a GATCGGAAGAGCACACGTCTGAACTCCAGTCACCGATGTATCTCGTATGC SRR647485.fastq -o SRR647485.ca.trimmed.fastq --untrimmed-output=SRR647485.ca.untrimmed.fastq 1> /dev/null
+
+# Create delta-files
+delta.py SRR647485.fastq SRR647485.ca.trimmed.fastq SRR647485.ca.trimmed.delta
+delta.py SRR647485.fastq SRR647485.ca.untrimmed.fastq SRR647485.ca.untrimmed.delta
+
+# Demonstrate difference in file-size between the delta-file and the actual second version
+echo "Here's the difference between the processed file and the delta-file after running cutadapt with the -untrimmed-output option."
+ls -l SRR647485.ca.*trimmed.*
+
+# Rebuild the processed file using the original and the delta-file
+rebuild.py SRR647485.fastq SRR647485.ca.trimmed.delta.zip SRR647485.ca.trimmed.rebuilt.fastq
+rebuild.py SRR647485.fastq SRR647485.ca.untrimmed.delta.zip SRR647485.ca.untrimmed.rebuilt.fastq
+
+# Compare the processed file with the rebuilt file
+echo "Comparing the processed file with the rebuilt file. The next line should be empty."
+cmp SRR647485.ca.trimmed.fastq SRR647485.ca.trimmed.rebuilt.fastq
+cmp SRR647485.ca.untrimmed.fastq SRR647485.ca.untrimmed.rebuilt.fastq
+echo
+
+
+# Clean up newly created files
+rm SRR647485.ca.*
+
+
+printf "\n\n\n"
+
 
 # Create a file where lines are removed from head, center and tail.
 split -l 31952 SRR647485.fastq part
@@ -56,7 +107,7 @@ delta.py SRR647485.fastq SRR647485.rem.fastq SRR647485.rem.delta
 
 # Demonstrate difference in file-size between the delta-file and the actual second version
 echo "Here's the difference between the processed file and the delta-file after removing lines."
-ls -l SRR647485.rem.*
+ls -lh SRR647485.rem.*
 
 # Rebuild the processed file using the original and the delta-file
 rebuild.py SRR647485.fastq SRR647485.rem.delta.zip SRR647485.rem.rebuilt.fastq
@@ -101,8 +152,8 @@ rm md5_* *.cha_md5.*
 printf "\n\n\n"
 
 
-echo "Creating a delta-file that breaks during rebuild, because the length of source and"
-echo "target strings do not match up. Basically a feature of the underlying dmp-library."
+echo "Creating a delta-file that breaks during rebuild, because the length of processed and"
+echo "regenerated strings do not match up. Basically a feature of the underlying dmp-library."
 unzip SRR647485.cha_fq.delta.zip SRR647485.ca.delta > /dev/null
 mv SRR647485.ca.delta SRR647485.ca.delta.old
 printf "=59\n=100\n=59\n=100\n" > SRR647485.ca.delta
@@ -127,6 +178,6 @@ echo "The following command will raise an error in Python."
 rebuild.py SRR647485.fastq SRR647485.cha_fq.delta.zip SRR647485.cha_fq.fastq
 
 # Clean up the mess
-rm *.delta.*
+rm *.delta.* *.cha_fq.*
 
 echo
