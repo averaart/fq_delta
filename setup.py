@@ -12,4 +12,5 @@ setup(name='fq_delta',
       packages=['fq_delta', 'diff_match_patch'],
       package_dir={'fq_delta': 'fq_delta'},
       package_data={'fq_delta': ['*.sh']},
+      scripts = ['scripts/delta', 'scripts/rebuild']
       )
