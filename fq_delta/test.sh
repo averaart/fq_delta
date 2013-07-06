@@ -2,7 +2,7 @@
 
 # This script runs a few tests on fq_delta.
 # It assumes there is access to the internet to download the testfile.
-# It also requires delta.py, rebuild.py, cutadapt and the FASTX-toolkit to be available in PATH.
+# It also requires delta, rebuild, cutadapt and the FASTX-toolkit to be available in PATH.
 
 # Download a test-file
 echo
@@ -19,14 +19,14 @@ printf "\n\n\n"
 fastq_quality_trimmer -t 20 -i SRR647485.fastq -o SRR647485.qt.fastq
 
 # Create delta-file
-delta.py SRR647485.fastq SRR647485.qt.fastq SRR647485.qt.delta
+delta SRR647485.fastq SRR647485.qt.fastq SRR647485.qt.delta
 
 # Demonstrate difference in file-size between the delta-file and the actual second version
 echo "Here's the difference between the processed file and the delta-file after running fastq_quality_trimmer from the FASTX-toolkit."
 ls -l SRR647485.qt.*
 
 # Rebuild the processed file using the original and the delta-file
-rebuild.py SRR647485.fastq SRR647485.qt.delta.zip SRR647485.qt.rebuilt.fastq
+rebuild SRR647485.fastq SRR647485.qt.delta.zip SRR647485.qt.rebuilt.fastq
 
 # Compare the processed file with the rebuilt file
 echo "Comparing the processed file with the rebuilt file. The next line should be empty."
@@ -43,14 +43,14 @@ printf "\n\n\n"
 cutadapt -a GATCGGAAGAGCACACGTCTGAACTCCAGTCACCGATGTATCTCGTATGC SRR647485.fastq > SRR647485.ca.fastq 2> /dev/null
 
 # Create delta-file
-delta.py SRR647485.fastq SRR647485.ca.fastq SRR647485.ca.delta
+delta SRR647485.fastq SRR647485.ca.fastq SRR647485.ca.delta
 
 # Demonstrate difference in file-size between the delta-file and the actual second version
 echo "Here's the difference between the processed file and the delta-file after running cutadapt."
 ls -lh SRR647485.ca.*
 
 # Rebuild the processed file using the original and the delta-file
-rebuild.py SRR647485.fastq SRR647485.ca.delta.zip SRR647485.ca.rebuilt.fastq
+rebuild SRR647485.fastq SRR647485.ca.delta.zip SRR647485.ca.rebuilt.fastq
 
 # Compare the processed file with the rebuilt file
 echo "Comparing the processed file with the rebuilt file. The next line should be empty."
@@ -72,16 +72,16 @@ printf "\n\n\n"
 cutadapt -a GATCGGAAGAGCACACGTCTGAACTCCAGTCACCGATGTATCTCGTATGC SRR647485.fastq -o SRR647485.ca.trimmed.fastq --untrimmed-output=SRR647485.ca.untrimmed.fastq 1> /dev/null
 
 # Create delta-files
-delta.py SRR647485.fastq SRR647485.ca.trimmed.fastq SRR647485.ca.trimmed.delta
-delta.py SRR647485.fastq SRR647485.ca.untrimmed.fastq SRR647485.ca.untrimmed.delta
+delta SRR647485.fastq SRR647485.ca.trimmed.fastq SRR647485.ca.trimmed.delta
+delta SRR647485.fastq SRR647485.ca.untrimmed.fastq SRR647485.ca.untrimmed.delta
 
 # Demonstrate difference in file-size between the delta-file and the actual second version
 echo "Here's the difference between the processed file and the delta-file after running cutadapt with the -untrimmed-output option."
 ls -l SRR647485.ca.*trimmed.*
 
 # Rebuild the processed file using the original and the delta-file
-rebuild.py SRR647485.fastq SRR647485.ca.trimmed.delta.zip SRR647485.ca.trimmed.rebuilt.fastq
-rebuild.py SRR647485.fastq SRR647485.ca.untrimmed.delta.zip SRR647485.ca.untrimmed.rebuilt.fastq
+rebuild SRR647485.fastq SRR647485.ca.trimmed.delta.zip SRR647485.ca.trimmed.rebuilt.fastq
+rebuild SRR647485.fastq SRR647485.ca.untrimmed.delta.zip SRR647485.ca.untrimmed.rebuilt.fastq
 
 # Compare the processed file with the rebuilt file
 echo "Comparing the processed file with the rebuilt file. The next line should be empty."
@@ -103,14 +103,14 @@ cat partab partad > SRR647485.rem.fastq
 rm parta*
 
 # Create delta-file
-delta.py SRR647485.fastq SRR647485.rem.fastq SRR647485.rem.delta
+delta SRR647485.fastq SRR647485.rem.fastq SRR647485.rem.delta
 
 # Demonstrate difference in file-size between the delta-file and the actual second version
 echo "Here's the difference between the processed file and the delta-file after removing lines."
 ls -lh SRR647485.rem.*
 
 # Rebuild the processed file using the original and the delta-file
-rebuild.py SRR647485.fastq SRR647485.rem.delta.zip SRR647485.rem.rebuilt.fastq
+rebuild SRR647485.fastq SRR647485.rem.delta.zip SRR647485.rem.rebuilt.fastq
 
 # Compare the processed file with the rebuilt file
 echo "Comparing the processed file with the rebuilt file. The next line should be empty."
@@ -131,7 +131,7 @@ zip SRR647485.rem_md5.delta.zip -d md5_checksum > /dev/null
 
 # Try to rebuild the processed file
 echo "The following command will raise an error in Python."
-rebuild.py SRR647485.fastq SRR647485.rem_md5.delta.zip SRR647485.rem_md5.fastq
+rebuild SRR647485.fastq SRR647485.rem_md5.delta.zip SRR647485.rem_md5.fastq
 
 
 printf "\n\n\n"
@@ -143,7 +143,7 @@ zip SRR647485.cha_md5.delta.zip md5_checksum > /dev/null
 
 # Try to rebuild the processed file
 echo "The following command will raise an error in Python."
-rebuild.py SRR647485.fastq SRR647485.cha_md5.delta.zip SRR647485.cha_md5.fastq
+rebuild SRR647485.fastq SRR647485.cha_md5.delta.zip SRR647485.cha_md5.fastq
 
 # Clean up the mess
 rm md5_* *.cha_md5.*
@@ -162,7 +162,7 @@ zip SRR647485.cha_fq.delta.zip SRR647485.ca.delta > /dev/null
 
 # Try to rebuild the processed file
 echo "The following command will raise an error in Python."
-rebuild.py SRR647485.fastq SRR647485.cha_fq.delta.zip SRR647485.cha_fq.fastq
+rebuild SRR647485.fastq SRR647485.cha_fq.delta.zip SRR647485.cha_fq.fastq
 
 
 printf "\n\n\n"
@@ -175,7 +175,7 @@ zip SRR647485.cha_fq.delta.zip SRR647485.ca.delta > /dev/null
 
 # Try to rebuild the processed file
 echo "The following command will raise an error in Python."
-rebuild.py SRR647485.fastq SRR647485.cha_fq.delta.zip SRR647485.cha_fq.fastq
+rebuild SRR647485.fastq SRR647485.cha_fq.delta.zip SRR647485.cha_fq.fastq
 
 # Clean up the mess
 rm *.delta.* *.cha_fq.*
