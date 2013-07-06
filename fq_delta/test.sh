@@ -178,6 +178,6 @@ echo "The following command will raise an error in Python."
 rebuild SRR647485.fastq SRR647485.cha_fq.delta.zip SRR647485.cha_fq.fastq
 
 # Clean up the mess
-rm *.delta.* *.cha_fq.*
+rm *.delta.* *.cha_fq.* SRR647485.fastq
 
 echo
