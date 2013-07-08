@@ -15,8 +15,5 @@ setup(name='fq_delta',
       packages=['fq_delta', 'diff_match_patch'],
       package_dir={'fq_delta': 'fq_delta'},
       package_data={'fq_delta': ['*.sh']},
-      scripts=['scripts/delta', 'scripts/rebuild']
+      scripts=['scripts/delta', 'scripts/rebuild', 'scripts/test_fq_delta']
       )
-
-if argv[1] == "install":
-    chmod(get_python_lib() + '/fq_delta/test.sh', 0755)
