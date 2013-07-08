@@ -15,6 +15,52 @@ bunzip2 SRR647485.fastq.bz2
 
 printf "\n\n\n"
 
+echo "Running fastq_masker with default settings."
+fastq_masker -i SRR647485.fastq -o SRR647485.qm.fastq
+
+# Create delta-file
+delta SRR647485.fastq SRR647485.qm.fastq SRR647485.qm.delta
+
+# Demonstrate difference in file-size between the delta-file and the actual second version
+echo "Here's the difference between the processed file and the delta-file after running fastq_masker from the FASTX-toolkit with default settings."
+ls -lh SRR647485.qm.*
+
+# Rebuild the processed file using the original and the delta-file
+rebuild SRR647485.fastq SRR647485.qm.delta.zip SRR647485.qm.rebuilt.fastq
+
+# Compare the processed file with the rebuilt file
+echo "Comparing the processed file with the rebuilt file. The next line should be empty."
+cmp SRR647485.qm.fastq SRR647485.qm.rebuilt.fastq
+echo
+
+# Clean up newly created files
+rm SRR647485.qm.*
+
+printf "\n\n\n"
+
+echo "Running fastq_masker with -q 25."
+fastq_masker -q 25 -i SRR647485.fastq -o SRR647485.qm.fastq
+
+# Create delta-file
+delta SRR647485.fastq SRR647485.qm.fastq SRR647485.qm.delta
+
+# Demonstrate difference in file-size between the delta-file and the actual second version
+echo "Here's the difference between the processed file and the delta-file after running fastq_masker from the FASTX-toolkit with -q 25."
+ls -lh SRR647485.qm.*
+
+# Rebuild the processed file using the original and the delta-file
+rebuild SRR647485.fastq SRR647485.qm.delta.zip SRR647485.qm.rebuilt.fastq
+
+# Compare the processed file with the rebuilt file
+echo "Comparing the processed file with the rebuilt file. The next line should be empty."
+cmp SRR647485.qm.fastq SRR647485.qm.rebuilt.fastq
+echo
+
+# Clean up newly created files
+rm SRR647485.qm.*
+
+printf "\n\n\n"
+
 
 fastq_quality_trimmer -t 20 -i SRR647485.fastq -o SRR647485.qt.fastq
 
@@ -23,7 +69,7 @@ delta SRR647485.fastq SRR647485.qt.fastq SRR647485.qt.delta
 
 # Demonstrate difference in file-size between the delta-file and the actual second version
 echo "Here's the difference between the processed file and the delta-file after running fastq_quality_trimmer from the FASTX-toolkit."
-ls -l SRR647485.qt.*
+ls -lh SRR647485.qt.*
 
 # Rebuild the processed file using the original and the delta-file
 rebuild SRR647485.fastq SRR647485.qt.delta.zip SRR647485.qt.rebuilt.fastq
@@ -77,7 +123,7 @@ delta SRR647485.fastq SRR647485.ca.untrimmed.fastq SRR647485.ca.untrimmed.delta
 
 # Demonstrate difference in file-size between the delta-file and the actual second version
 echo "Here's the difference between the processed file and the delta-file after running cutadapt with the -untrimmed-output option."
-ls -l SRR647485.ca.*trimmed.*
+ls -lh SRR647485.ca.*trimmed.*
 
 # Rebuild the processed file using the original and the delta-file
 rebuild SRR647485.fastq SRR647485.ca.trimmed.delta.zip SRR647485.ca.trimmed.rebuilt.fastq
