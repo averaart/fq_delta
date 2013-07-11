@@ -36,7 +36,7 @@ parser = argparse.ArgumentParser(description='This script compares two files. Th
                                              'There is no need to uncompress it when rebuilding the changed file from '
                                              'the original and delta files.',
                                  epilog='Files can either be fastq files, or files compressed with Quip '
-                                        '(http://homes.cs.washington.edu/~dcjones/quip/). Quip files are recognised by'
+                                        '(http://homes.cs.washington.edu/~dcjones/quip/). Quip files are recognised by '
                                         'their .qp extension. This of course requires Quip to be installed and '
                                         'available on PATH.')
 parser.add_argument('file1',
