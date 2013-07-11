@@ -5,9 +5,13 @@
 # It also requires delta, rebuild, cutadapt and the FASTX-toolkit to be available in PATH.
 
 # Download a test-file
+
 echo
 echo "Downloading a fastq-file to run the tests on."
-curl ftp://anonymous@ftp.ddbj.nig.ac.jp/ddbj_database/dra/fastq/SRA064/SRA064221/SRX216164/SRR647485.fastq.bz2 -o SRR647485.fastq.bz2
+command -v curl &> /dev/null
+test $? -eq 0 \
+&& curl ftp://anonymous:anonymous@ftp.ddbj.nig.ac.jp/ddbj_database/dra/fastq/SRA064/SRA064221/SRX216164/SRR647485.fastq.bz2 -o SRR647485.fastq.bz2 \
+|| wget ftp://anonymous:anonymous@ftp.ddbj.nig.ac.jp/ddbj_database/dra/fastq/SRA064/SRA064221/SRX216164/SRR647485.fastq.bz2
 
 # Decompress
 bunzip2 SRR647485.fastq.bz2
