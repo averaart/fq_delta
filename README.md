@@ -9,7 +9,7 @@ fq_delta can be used to fully reconstruct the original files, they are only a fr
 implementation of this module will lead to a significant reduction in storage required
 for processing sequence data.
 
-Fq_delta is available for download at https://github.com/averaart/fq_delta.
+A technical note on fq_delta has been published in [EMBnet.journal](http://journal.embnet.org/index.php/embnetjournal/article/view/698).
 
 ## Installation
 
